@@ -9,6 +9,7 @@ namespace PlaylistYoutube.Models
         {
         }
 
-        public DbSet<Song> Songs { get; set; }
+        public DbSet<Playlist> Playlists { get; set; }
+        public DbSet<Video> Videos { get; set; }
     }
 }
