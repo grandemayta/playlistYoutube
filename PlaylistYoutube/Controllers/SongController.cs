@@ -12,18 +12,53 @@ namespace PlaylistYoutube.Controllers
     {
         private readonly PlaylistContext _context;
 
-        public SongController(PlaylistContext context) {
+        public SongController(PlaylistContext context)
+        {
             _context = context;
-
-            if(_context.Songs.Count() == 0) {
-                _context.Songs.Add(new Song { Name = "Vamos a bailar", Url = "http://fake.com/22893939" });
-                _context.SaveChanges();
-            }
         }
 
         [HttpGet]
-        public IEnumerable<Song> GetAll() {
+        public IEnumerable<Song> GetAll()
+        {
             return _context.Songs.ToList();
         }
+
+        [HttpGet("{id}", Name = "GetById")]
+        public IActionResult GetById(long id) 
+        {
+            var item = _context.Songs.FirstOrDefault(current => current.Id == id);
+            if(item == null) {
+                return NotFound();
+            }
+            return new ObjectResult(item);
+        }
+
+        [HttpPost]
+        public IActionResult Create([FromBody] Song song)
+        {
+            if(song  == null) {
+                return BadRequest();
+            }
+
+            _context.Songs.Add(song);
+            _context.SaveChanges();
+
+            return CreatedAtRoute("GetById", new { id = song.Id}, song);
+        }
+
+		[HttpDelete("{id}")]
+		public IActionResult Delete(long id)
+		{
+			var song = _context.Songs.First(current => current.Id == id);
+			if (song == null)
+			{
+				return NotFound();
+			}
+
+			_context.Songs.Remove(song);
+			_context.SaveChanges();
+
+			return new NoContentResult();
+		}
     }
 }
