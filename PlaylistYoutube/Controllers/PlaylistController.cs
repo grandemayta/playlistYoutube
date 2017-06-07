@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using PlaylistYoutube.Models;
+using PlaylistYoutube.App_Code.BLL;
 
 namespace PlaylistYoutube.Controllers
 {
@@ -11,60 +11,54 @@ namespace PlaylistYoutube.Controllers
     public class PlaylistController : Controller
     {
         private readonly PlaylistContext _context;
+        private PlaylistManager _playlistManager;
 
         public PlaylistController(PlaylistContext context)
         {
             _context = context;
+            _playlistManager = new PlaylistManager(context);
         }
 
-        [HttpGet]
+		[HttpGet]
         public IEnumerable<Playlist> GetAll()
         {
-            var videos = (from p in _context.Playlists
-                          select new Playlist {
-                            Name = p.Name,
-                            Videos = p.Videos.ToList()
-                         }).ToList();
-
-            return videos;
+            return _playlistManager.GetAll();
         }
 
         [HttpGet("{id}", Name = "GetById")]
         public IActionResult GetById(long id)
         {
-            var playlist = _context.Playlists.FirstOrDefault(current => current.Id == id);
-            if(playlist == null) {
-                return NotFound();
-            }
+            var playlist = _playlistManager.GetById(id);
+
+            if(playlist == null) return NotFound();
             return new ObjectResult(playlist);
         }
 
-        [HttpPost]
+		[HttpPost]
         public IActionResult Create([FromBody] Playlist playlist)
         {
-            if(!ModelState.IsValid) {
-                return BadRequest();
+            if(ModelState.IsValid) {
+                var createPlaylist = _playlistManager.CreatePlaylist(playlist);
+
+                if(createPlaylist == "Created") return CreatedAtRoute("GetById", new { id = playlist.Id }, playlist);
+				throw new ArgumentException(createPlaylist);
             }
 
-            _context.Playlists.Add(playlist);
-            _context.SaveChanges();
+            return BadRequest();
+        }
 
-            return CreatedAtRoute("GetById", new { id = playlist.Id }, playlist);
+        [HttpPut("{id}")]
+        public IActionResult Update(long id, [FromBody]Playlist playlist) 
+        {
+            if (!_playlistManager.Update(id, playlist)) return NotFound();
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(long id)
         {
-            var playlist = _context.Playlists.First(current => current.Id == id);
-            if (playlist == null)
-            {
-                return NotFound();
-            }
-
-            _context.Playlists.Remove(playlist);
-            _context.SaveChanges();
-
-            return new NoContentResult();
+            if (_playlistManager.Delete(id)) return new NoContentResult();
+            return NotFound();
         }
     }
 }
